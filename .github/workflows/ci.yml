@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [version1, main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        # Locked set = the exact versions deploys install (supply-chain
+        # reproducibility); fall back to ranges if the lock is absent.
+        run: |
+          if [ -f requirements.lock ]; then
+            pip install -r requirements.lock
+          else
+            pip install -r requirements.txt
+          fi
+
+      - name: Run test suite
+        run: python -m pytest tests/ -q
+        env:
+          # Tests are fully offline (mocked fetchers, temp DBs); empty
+          # keys keep Settings happy without secrets in CI.
+          BINANCE_API_KEY: ""
+          GROQ_API_KEY: ""
+          TELEGRAM_BOT_TOKEN: ""
+
+      - name: Smoke — import live entrypoint from the locked env
+        # The test suite never imports scripts/run_live, so a runtime-only
+        # dependency missing from requirements.lock (e.g. apscheduler,
+        # python-telegram-bot) passes every test yet crashes the real bot
+        # on startup. This import exercises the full live dependency graph
+        # against the exact locked set that deploys install.
+        run: python -c "import scripts.run_live; print('live entrypoint import OK')"
+        env:
+          BINANCE_API_KEY: ""
+          GROQ_API_KEY: ""
+          TELEGRAM_BOT_TOKEN: ""

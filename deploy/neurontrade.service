@@ -1,0 +1,44 @@
+[Unit]
+Description=NeuronTrade (single-process paper run — strategy, risk, execution, Telegram, kill switch)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Adjust user and paths for your host (setup_server.sh templates these).
+User=osama
+WorkingDirectory=/home/osama/ai-workspace/projects/neurontrade
+# The monolithic loop: fetch → indicators → strategy (via STRATEGY registry)
+# → PaperTrader, all in one process. This is the paper-run entrypoint; it
+# honors STRATEGY=trend_following and decides on CLOSED candles at candle-close
+# boundaries. The decoupled neurontrade-{intelligence,execution} pair is the
+# advanced (two-process ZMQ) alternative — use one OR the other, never both.
+ExecStart=/home/osama/ai-workspace/projects/neurontrade/.venv/bin/python scripts/run_live.py
+Restart=on-failure
+RestartSec=10
+# SIGTERM → cooperative shutdown: the scheduler finishes any in-flight
+# position write (scheduler.shutdown(wait=True)) before the process exits,
+# so `systemctl stop`/`restart` never abandons a half-written trade.
+TimeoutStopSec=120
+KillSignal=SIGTERM
+
+# The kill switch (SIGUSR1 / KILL_SWITCH flag file) remains available:
+#   systemctl kill -s SIGUSR1 neurontrade
+#   touch /home/osama/ai-workspace/projects/neurontrade/KILL_SWITCH
+
+# Hardening. ProtectSystem=strict makes /usr, /etc, /boot read-only to the
+# service; only the project dir is writable (the bot legitimately writes there:
+# SQLite state, logs, model retrains, and the KILL_SWITCH flag file at the
+# project root). A compromised dependency can touch bot state but not the OS,
+# other users' homes, or systemd units.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/osama/ai-workspace/projects/neurontrade
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

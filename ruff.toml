@@ -1,0 +1,22 @@
+# Lint configuration (clean-code baseline; see claude.md standards)
+line-length = 100
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "W"]
+ignore = ["E501"]  # long lines: loguru format strings & SQL read better unwrapped
+
+[lint.per-file-ignores]
+# Entrypoint scripts must extend sys.path before project imports
+"scripts/*" = ["E402"]
+# health_check's "unused" imports ARE the import test
+"scripts/health_check.py" = ["F401"]
+# Package __init__ re-exports are the public API
+"**/__init__.py" = ["F401"]
+
+# Trailing whitespace inside STRING LITERALS, not code: LLM prompt text
+# and box-drawing report templates where the padding is what aligns the
+# output. Stripping it changes rendered output, so it is not "cleanup".
+"ai/llm_agent.py" = ["W291"]
+"ai/signal_combiner.py" = ["W291"]
+"backtesting/engine.py" = ["W291"]

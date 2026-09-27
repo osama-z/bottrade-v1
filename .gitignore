@@ -1,0 +1,78 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.env.local
+
+# Logs
+logs/
+*.log
+
+# Database
+*.db
+*.sqlite3
+
+# Trained ML models
+ai/models/*.pkl
+ai/models/*.joblib
+ai/models/*.json
+!ai/models/README.md
+!ai/models/.gitkeep
+
+# Downloaded OHLCV history — re-fetchable via scripts/train_model.py,
+# and a year of 1h candles is ~600KB per pair.
+data/cache/
+
+# Backtesting results
+backtesting/results/
+!backtesting/results/.gitkeep
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Pytest
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# MyPy
+.mypy_cache/
+
+# Ruff
+.ruff_cache/
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# Local model backups taken before walk-forward retrains overwrite them
+ai/models.backup.*/
+
+# SQLite sidecars (WAL mode)
+*.db-shm
+*.db-wal
+*.sqlite3-shm
+*.sqlite3-wal

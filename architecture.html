@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuronTrade Smart Flow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #07090e;
+            --box-bg: rgba(16, 22, 38, 0.8);
+            --border-glow: rgba(59, 130, 246, 0.3);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --cyan: #06b6d4;
+            --purple: #a855f7;
+            --green: #10b981;
+            --blue: #3b82f6;
+            --red: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(6, 182, 212, 0.05), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.05), transparent 25%);
+            background-attachment: fixed;
+            padding-bottom: 100px;
+        }
+
+        header {
+            text-align: center;
+            padding: 4rem 2rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #fff, #93c5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        p.subtitle {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* The Flow Container */
+        .flow-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 1000px;
+            margin: 0 auto;
+            position: relative;
+            padding: 2rem;
+        }
+
+        /* The Animated Main Data Line connecting everything */
+        .data-pipeline {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateX(-50%);
+            z-index: 1;
+        }
+
+        .data-pulse {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background: linear-gradient(to bottom, transparent, var(--cyan), transparent);
+            animation: pulse-down 4s infinite linear;
+            box-shadow: 0 0 20px var(--cyan);
+        }
+
+        @keyframes pulse-down {
+            0% { top: -100px; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        /* The Nodes / Boxes */
+        .node-row {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            margin: 3rem 0;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Split nodes (e.g. AI Brains) */
+        .node-row.split {
+            justify-content: space-between;
+            gap: 2rem;
+            max-width: 1100px;
+        }
+
+        .box {
+            background: var(--box-bg);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+            position: relative;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .box:hover {
+            transform: translateY(-5px);
+        }
+
+        /* Connecting horizontal lines for split rows */
+        .node-row.split::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 80%;
+            height: 2px;
+            background: rgba(255,255,255,0.05);
+            transform: translate(-50%, -50%);
+            z-index: -1;
+        }
+
+        .box-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 1rem;
+        }
+
+        .box-title .icon {
+            font-size: 1.8rem;
+        }
+
+        .box-desc {
+            color: var(--text-muted);
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Specific Box Glows */
+        .box.blue { border-top: 3px solid var(--blue); }
+        .box.blue:hover { border-color: var(--blue); box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
+        
+        .box.purple { border-top: 3px solid var(--purple); }
+        .box.purple:hover { border-color: var(--purple); box-shadow: 0 0 20px rgba(168, 85, 247, 0.2); }
+        
+        .box.cyan { border-top: 3px solid var(--cyan); }
+        .box.cyan:hover { border-color: var(--cyan); box-shadow: 0 0 20px rgba(6, 182, 212, 0.2); }
+        
+        .box.green { border-top: 3px solid var(--green); }
+        .box.green:hover { border-color: var(--green); box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
+
+        /* Data Payload Tags */
+        .payload {
+            background: rgba(0,0,0,0.5);
+            border: 1px dashed rgba(255,255,255,0.15);
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #93c5fd;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .payload-title {
+            font-size: 0.75rem;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .payload span {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .payload span b {
+            color: #fff;
+        }
+
+        /* Flow steps numbering */
+        .step-number {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 40px;
+            background: var(--bg-color);
+            border: 2px solid var(--cyan);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 1.2rem;
+            color: var(--cyan);
+            box-shadow: 0 0 15px var(--cyan);
+            z-index: 10;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>The Smart Flow</h1>
+        <p class="subtitle">Follow the journey of a single market tick. Watch how raw exchange data is transformed into a highly-calculated, risk-managed trade executed automatically.</p>
+    </header>
+
+    <div class="flow-container">
+        
+        <!-- Animated Pipeline -->
+        <div class="data-pipeline">
+            <div class="data-pulse"></div>
+        </div>
+
+        <!-- STEP 1 -->
+        <div class="node-row">
+            <div class="box blue">
+                <div class="step-number" style="border-color: var(--blue); color: var(--blue); box-shadow: 0 0 15px var(--blue);">1</div>
+                <div class="box-title">
+                    <span class="icon">📡</span> Data Ingestion
+                </div>
+                <p class="box-desc">The bot listens to Binance. When a 1-hour candle closes, it pulls the raw price history and cleans out any API errors or missing gaps.</p>
+                <div class="payload">
+                    <div class="payload-title">Raw Payload</div>
+                    <span>Timestamp: <b>14:00:00</b></span>
+                    <span>Open: <b>$64,100</b></span>
+                    <span>Close: <b>$64,550</b></span>
+                    <span>Volume: <b>1,240 BTC</b></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="node-row">
+            <div class="box cyan">
+                <div class="step-number">2</div>
+                <div class="box-title">
+                    <span class="icon">⚙️</span> Context & Features
+                </div>
+                <p class="box-desc">The nervous system activates. It calculates 130+ technical indicators instantly to understand the market structure, momentum, and volatility.</p>
+                <div class="payload">
+                    <div class="payload-title">Processed Matrix</div>
+                    <span>RSI (14): <b style="color:var(--green)">28.4 (Oversold)</b></span>
+                    <span>MACD Cross: <b style="color:var(--green)">Bullish</b></span>
+                    <span>ATR (Vol): <b>$850</b></span>
+                    <span>Bollinger %B: <b>0.02 (Bottom Band)</b></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: The Split Brain -->
+        <div class="node-row split">
+            <div class="box purple">
+                <div class="step-number" style="border-color: var(--purple); color: var(--purple); box-shadow: 0 0 15px var(--purple);">3A</div>
+                <div class="box-title">
+                    <span class="icon">📈</span> ML Quant
+                </div>
+                <p class="box-desc">The XGBoost Machine Learning model analyzes the numerical patterns against years of historical data to find probability.</p>
+                <div class="payload">
+                    <div class="payload-title">XGBoost Output</div>
+                    <span>Prob(UP): <b style="color:var(--green)">68%</b></span>
+                    <span>Prob(DOWN): <b>32%</b></span>
+                    <span>Signal: <b style="color:var(--green)">BUY</b></span>
+                </div>
+            </div>
+
+            <div class="box purple">
+                <div class="step-number" style="border-color: var(--purple); color: var(--purple); box-shadow: 0 0 15px var(--purple);">3B</div>
+                <div class="box-title">
+                    <span class="icon">🤖</span> LLM Analyst
+                </div>
+                <p class="box-desc">Claude reads the market metrics like a human trader, looking for structural confirmations and logical setups.</p>
+                <div class="payload">
+                    <div class="payload-title">Claude Output</div>
+                    <span>Rating: <b style="color:var(--green)">+0.75</b></span>
+                    <span>Confidence: <b>85%</b></span>
+                    <span>Signal: <b style="color:var(--green)">BUY</b></span>
+                </div>
+            </div>
+
+            <div class="box purple">
+                <div class="step-number" style="border-color: var(--purple); color: var(--purple); box-shadow: 0 0 15px var(--purple);">3C</div>
+                <div class="box-title">
+                    <span class="icon">📰</span> News Sentiment
+                </div>
+                <p class="box-desc">The NLP engine scans current crypto headlines to ensure we aren't buying into a sudden regulatory crash or hack.</p>
+                <div class="payload">
+                    <div class="payload-title">VADER Output</div>
+                    <span>Headlines: <b>14 Analyzed</b></span>
+                    <span>Score: <b>+0.12 (Neutral)</b></span>
+                    <span>Signal: <b style="color:var(--text-muted)">HOLD</b></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="node-row">
+            <div class="box blue">
+                <div class="step-number" style="border-color: var(--blue); color: var(--blue); box-shadow: 0 0 15px var(--blue);">4</div>
+                <div class="box-title">
+                    <span class="icon">⚖️</span> The Combiner
+                </div>
+                <p class="box-desc">The "Smart Judge" fuses the 3 AI brains together using the 40/40/20 rule. It checks if the overall confidence is high enough to risk real money.</p>
+                <div class="payload">
+                    <div class="payload-title">Consensus Math</div>
+                    <span>ML (68% * 0.40): <b>0.272</b></span>
+                    <span>LLM (75% * 0.40): <b>0.300</b></span>
+                    <span>News (12% * 0.20): <b>0.024</b></span>
+                    <span>Final AI Score: <b style="color:var(--green)">0.596 (> 0.20 = BUY)</b></span>
+                    <span>Total Confidence: <b style="color:var(--green)">78% (> 60% = ACTIONABLE)</b></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 5 -->
+        <div class="node-row">
+            <div class="box green">
+                <div class="step-number" style="border-color: var(--green); color: var(--green); box-shadow: 0 0 15px var(--green);">5</div>
+                <div class="box-title">
+                    <span class="icon">🛡️</span> Execution & Risk
+                </div>
+                <p class="box-desc">The trade is approved! But before buying, the Risk Manager calculates exactly how many coins to buy to ensure you never lose more than 2% of your account if the trade fails.</p>
+                <div class="payload">
+                    <div class="payload-title">Risk Calculation</div>
+                    <span>Capital: <b>$1,000</b></span>
+                    <span>Max Risk (2%): <b>$20.00</b></span>
+                    <span>Stop Loss Dist: <b>2.5% based on ATR</b></span>
+                    <span>Position Size: <b>Buy $800 of BTC</b></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 6 -->
+        <div class="node-row">
+            <div class="box" style="border-top: 3px solid #fff;">
+                <div class="step-number" style="border-color: #fff; color: #fff; box-shadow: 0 0 15px #fff;">6</div>
+                <div class="box-title">
+                    <span class="icon">📱</span> Telegram & Database
+                </div>
+                <p class="box-desc">The order is sent to the exchange. Simultaneously, it is permanently logged into your SQLite database for performance tracking, and a message is beamed to your phone.</p>
+                <div class="payload">
+                    <div class="payload-title">Telegram Push</div>
+                    <span>[🟢 NEW TRADE OPENED]</span>
+                    <span>Pair: <b>BTC/USDT</b></span>
+                    <span>Amount: <b>$800 @ $64,550</b></span>
+                    <span>Reason: <b>"Claude & ML agree on oversold RSI bounce with 78% confidence."</b></span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
