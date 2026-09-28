@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # NeuronTrade server bootstrap — Ubuntu 22.04/24.04 VPS.
 #
-# One command from a fresh server:
+# Recommended (safer) — clone first, review, then run:
+#   git clone --branch version1 https://github.com/osama-z/bottrade.git
+#   cd bottrade && bash deploy/setup_server.sh
+#
+# One-command (convenient but pipes remote code to bash — supply-chain risk):
 #   curl -fsSL https://raw.githubusercontent.com/osama-z/bottrade/version1/deploy/setup_server.sh | bash
-# or, after cloning manually:
-#   bash deploy/setup_server.sh
 #
 # Idempotent: safe to re-run for updates (git pull + pip install + unit refresh).
 

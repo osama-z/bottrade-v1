@@ -596,7 +596,7 @@ class PaperTrader:
                         f"PnL:    `${pnl:+.2f}`\n"
                         f"SL:     Moved to Breakeven `${entry_price:,.2f}`"
                     )
-                    self._telegram._send(msg)
+                    self._telegram.send_message(msg)
 
             # ── Update Trailing Stop Price ──────────────────────────────────
             if side == "buy":

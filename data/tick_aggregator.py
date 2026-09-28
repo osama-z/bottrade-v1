@@ -10,8 +10,8 @@ How it works
 3. When ``close_candle()`` is called (at candle-close time, driven by
    APScheduler), it finalises the candle and returns a single-row dict that
    can be appended to the historical DataFrame.
-4. ``merge_into(df)`` appends the completed row and trims the DataFrame to
-   a rolling window so memory stays bounded.
+4. ``merge_candle_into(candle, df)`` appends the completed row and trims
+   the DataFrame to a rolling window so memory stays bounded.
 
 Assumptions flagged
 -------------------
@@ -91,7 +91,7 @@ class TickAggregator:
 
         # At candle close (called by scheduler):
         candle = agg.close_candle()
-        df = agg.merge_into(df, window=500)
+        df = merge_candle_into(candle, df, window=500)
     """
 
     def __init__(
@@ -183,35 +183,6 @@ class TickAggregator:
             # Reset the accumulator
             self._candle = None
             return completed
-
-    def merge_into(
-        self,
-        df: pd.DataFrame,
-        window: int = 500,
-    ) -> pd.DataFrame:
-        """Append the last completed candle to ``df`` and trim to ``window`` rows.
-
-        The candle is expected to have been obtained from the most recent
-        ``close_candle()`` call. This method appends it, deduplicates on
-        index, and trims to the rolling window.
-
-        Args:
-            df:     Historical OHLCV DataFrame (UTC DatetimeIndex).
-            window: Maximum rows to retain after append (default 500 ≈ ~3
-                    weeks of 1h candles).
-
-        Returns:
-            New DataFrame with the completed candle appended.
-
-        Note:
-            Call ``close_candle()`` *before* calling ``merge_into()``; this
-            method reads ``_last_completed`` which is set by ``close_candle()``.
-        """
-        raise NotImplementedError(
-            "Call close_candle() to get a CompletedCandle, then pass it to "
-            "merge_candle_into(candle, df, window) instead."
-        )
-
 
 def merge_candle_into(
     candle: CompletedCandle,

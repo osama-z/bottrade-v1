@@ -492,6 +492,10 @@ class TelegramBot:
         )
         self._send(msg)
 
+    def send_message(self, message: str) -> None:
+        """Push: arbitrary message (public API for custom alerts)."""
+        self._send(message)
+
     # ─── Internal Send ─────────────────────────────────────────────────────────
 
     def _send(self, message: str) -> None:

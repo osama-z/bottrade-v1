@@ -466,11 +466,6 @@ class SqliteCircuitBreakerStore:
             )
             conn.commit()
 
-    @property
-    def _table(self) -> str:
-        return self._TABLE
-
-
 class RiskManager:
     """Evaluate pre-trade, position-sizing, and account-risk controls.
 
