@@ -1,8 +1,12 @@
 # Bottrade-v1 — Paper-Only Trading Demo
 
-> **PUBLIC DEMO — PAPER TRADING ONLY.** This is a simulation-only copy.
-> Live/testnet executors are disabled by design. No real money.
-> The private development repo (`osama-z/bottrade`) stays private.
+> **PUBLIC DEMO — PAPER TRADING ONLY — NOT FOR REAL MONEY.**
+>
+> This is a **portfolio/educational project** built to demonstrate trading
+> infrastructure engineering and quantitative research methodology. It is
+> **not** a production system. Live/testnet executors are disabled by design.
+> No real money. The private development repo (`osama-z/bottrade`) stays
+> private.
 
 A production-grade crypto **trading system** in Python — data pipeline, technical
 & AI signal generation, a Decimal-precise risk engine, backtesting with
@@ -124,7 +128,7 @@ ZeroMQ · APScheduler · pytest · ruff · GitHub Actions
 
 ## Disclaimer
 
-Educational / research project. It has **no proven trading edge** (see
-`docs/STRATEGY_NOTES.md`) and is **not** financial advice. Do not trade real
-money with it. Live execution is deliberately restricted to the testnet sandbox
-in the private repo.
+**This is a portfolio/educational project — not for real money.** It has
+**no proven trading edge** (see `docs/STRATEGY_NOTES.md`) and is **not**
+financial advice. Do not trade real money with it. Live execution is
+deliberately restricted to the testnet sandbox in the private repo.
