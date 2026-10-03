@@ -1,8 +1,8 @@
 """
-dashboard/analytics.py — Data access layer for the Streamlit dashboard.
+dashboard/analytics.py — SQLite analytics helpers used by the paper status command.
 
 Reads directly from the SQLite database (no ORM, read-only queries).
-Returns clean pandas DataFrames ready for Streamlit charts.
+Returns pandas DataFrames and statistics; no web dashboard UI is bundled.
 """
 
 from __future__ import annotations

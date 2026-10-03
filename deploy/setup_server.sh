@@ -2,18 +2,18 @@
 # NeuronTrade server bootstrap — Ubuntu 22.04/24.04 VPS.
 #
 # Recommended (safer) — clone first, review, then run:
-#   git clone --branch version1 https://github.com/osama-z/bottrade.git
-#   cd bottrade && bash deploy/setup_server.sh
+#   git clone --branch main https://github.com/osama-z/bottrade-v1.git
+#   cd bottrade-v1 && bash deploy/setup_server.sh
 #
 # One-command (convenient but pipes remote code to bash — supply-chain risk):
-#   curl -fsSL https://raw.githubusercontent.com/osama-z/bottrade/version1/deploy/setup_server.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/osama-z/bottrade-v1/main/deploy/setup_server.sh | bash
 #
 # Idempotent: safe to re-run for updates (git pull + pip install + unit refresh).
 
 set -euo pipefail
 
-REPO_URL="${REPO_URL:-https://github.com/osama-z/bottrade.git}"
-BRANCH="${BRANCH:-version1}"
+REPO_URL="${REPO_URL:-https://github.com/osama-z/bottrade-v1.git}"
+BRANCH="${BRANCH:-main}"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/neurontrade}"
 
 echo "── NeuronTrade bootstrap ──────────────────────────────"
@@ -25,8 +25,8 @@ sudo apt-get update -y
 sudo apt-get install -y git python3 python3-venv python3-pip curl
 
 PYVER=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-if ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)'; then
-    echo "ERROR: Python >= 3.11 required (found $PYVER)."
+if ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)'; then
+    echo "ERROR: Python >= 3.12 required (found $PYVER)."
     echo "On Ubuntu 22.04: sudo add-apt-repository ppa:deadsnakes/ppa && sudo apt install python3.12 python3.12-venv"
     exit 1
 fi
@@ -58,9 +58,8 @@ if [ ! -f .env ]; then
     install -m 600 .env.example .env
     echo ""
     echo ">>> ACTION REQUIRED: edit $INSTALL_DIR/.env"
-    echo ">>>   BINANCE_API_KEY / BINANCE_API_SECRET  (Reading-only key,"
-    echo ">>>     IP-whitelisted to THIS server: $(curl -s --max-time 5 ifconfig.me || echo '<server IP>'))"
-    echo ">>>   GROQ_API_KEY, NEWS_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID"
+    echo ">>>   Paper demo needs no exchange credentials. Leave Binance keys blank."
+    echo ">>>   Optional: GROQ_API_KEY, NEWS_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID"
 fi
 
 # Tighten perms on an .env that already existed (created before this
@@ -75,8 +74,8 @@ fi
 # neurontrade-{intelligence,execution} = advanced two-process ZMQ alternative.
 # All are installed; you ENABLE one path or the other, never both.
 for unit in neurontrade neurontrade-intelligence neurontrade-execution; do
-    sed -e "s|/home/osama/ai-workspace/projects/neurontrade|$INSTALL_DIR|g" \
-        -e "s|User=osama|User=$USER|g" \
+    sed -e "s|@PROJECT_ROOT@|$INSTALL_DIR|g" \
+        -e "s|@RUN_USER@|$USER|g" \
         "deploy/${unit}.service" | sudo tee "/etc/systemd/system/${unit}.service" > /dev/null
 done
 sudo systemctl daemon-reload
@@ -85,8 +84,8 @@ echo ""
 echo "── Bootstrap complete ─────────────────────────────────"
 echo "Paper run (default — run_live.py: honors STRATEGY, decides on CLOSED candles):"
 echo "  1. Edit $INSTALL_DIR/.env  (keys above; STRATEGY=trend_following, DEFAULT_TIMEFRAME=4h)"
-echo "  2. Whitelist this server's IP on the Binance key"
-echo "  3. .venv/bin/python scripts/health_check.py        # all green?"
+echo "  2. Leave Binance keys blank — this demo uses public market data"
+echo "  3. .venv/bin/python scripts/health_check.py --offline  # local setup"
 echo "  4. sudo systemctl enable --now neurontrade         # start the paper run"
 echo "  5. journalctl -fu neurontrade                      # watch it live"
 echo "  6. .venv/bin/python scripts/paper_status.py        # one-page status, anytime"

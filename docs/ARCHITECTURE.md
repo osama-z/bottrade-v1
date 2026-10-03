@@ -1,4 +1,4 @@
-> **Bottrade-v1 public demo:** live/testnet execution is stripped by design. `scripts/run_live.py` (paper) is the only trading loop here.
+> **Bottrade-v1 public demo:** live/testnet execution is stripped by design. `scripts/run_live.py` is the primary paper simulation loop.
 
 # Architecture
 
@@ -29,7 +29,7 @@ This is what keeps it testable and extensible.
 │                                        ▼                      │
 │                                  execution/                  │
 │                          PaperTrader (simulate)              │
-│                          LiveExecutor + TestnetTrader (real) │
+│                          LiveExecutor / TestnetTrader: DISABLED │
 │                                        │                      │
 │                                        ▼                      │
 │                                  storage/  (SQLite)          │
@@ -49,7 +49,7 @@ This is what keeps it testable and extensible.
 | Indicators | `indicators/` | Technical indicators, ML feature engineering |
 | Strategy | `strategies/` | Turn indicators into a BUY / SELL / HOLD decision |
 | Risk | `risk/` | Position sizing, circuit breaker, metrics, walk-forward |
-| Execution | `execution/` | Simulate (paper) or place real orders; manage positions |
+| Execution | `execution/` | Simulate paper orders and manage positions; exchange executors disabled |
 | Storage | `storage/` | SQLite persistence (trades, signals, orders, state) |
 | AI | `ai/` | XGBoost predictor, HMM regime, LLM/sentiment (measured, mostly dropped) |
 | Backtesting | `backtesting/` | Parity-verified engine over historical data |
@@ -64,13 +64,13 @@ This is what keeps it testable and extensible.
 | Command | File | Does |
 |---|---|---|
 | `python scripts/run_live.py` | `scripts/run_live.py` | **Paper** trading (simulated fills), the main loop |
-| `python scripts/run_testnet.py` | `scripts/run_testnet.py` | **Real orders** on Binance testnet |
+| `python scripts/run_testnet.py` | `scripts/run_testnet.py` | Disabled; exits with status 2 |
 | `python scripts/run_backtest.py` | `scripts/run_backtest.py` | One backtest over history |
 | `python scripts/strategy_lab.py` | `scripts/strategy_lab.py` | Screen strategies × pairs × timeframes |
 | `python scripts/health_check.py` | `scripts/health_check.py` | Pre-flight checks |
 | `python scripts/paper_status.py` | `scripts/paper_status.py` | One-page live status |
 
-Both live loops share the same shape: a scheduler fires **once per candle
+The paper loop follows this shape: a scheduler fires **once per candle
 close** (UTC-aligned), runs the pipeline for each pair, and sleeps.
 
 ---
@@ -122,15 +122,11 @@ Start in **`scripts/run_live.py`**:
 4. **Done** — record market structure, check drawdown, log latency. Sleep until
    the next candle close.
 
-### Testnet (real orders) — the difference
+### Exchange execution is disabled
 
-`scripts/run_testnet.py: process_pair` runs the *same* fetch → clean →
-indicators → `get_signal` pipeline, then:
-- `TestnetTrader.check_exits(...)` places a **real market sell** if SL/TP hit;
-- `TestnetTrader.process_signal(...)` places a **real market buy** on BUY
-  (`execution/live_executor.py: place_market_order` — idempotent, min-notional
-  guarded, retried) and records the **actual fill**, not a model price.
-Every order — accepted or rejected — is written to the `order_log` audit table.
+`LiveExecutor` and `TestnetTrader` are refusal stubs in this public demo.
+Their constructors raise `RealMoneyRefused`; `run_testnet.py` exits with status 2.
+Only the paper simulation is supported here.
 
 ---
 
@@ -146,13 +142,10 @@ The architecture is designed so common changes touch **one place**:
   column, even NaN on short frames — see the `_ma_or_nan` pattern).
 - **Add a data source / exchange** → `data/fetcher.py` uses ccxt; swap
   `ccxt.binance` for any of ~100 exchanges, or add a method.
-- **Add an execution venue** → implement the small executor surface
-  (`place_market_order`, `fetch_free_balance`, `fetch_order`) like
-  `LiveExecutor`; `TestnetTrader` consumes it via constructor injection.
 - **Change risk rules** → `risk/manager.py` (`RiskConfig` is the single
   settings-derived config both live and backtest use — parity by construction).
 - **Change configuration** → `config/settings.py` only. Frozen pydantic
-  settings; every value has a range constraint and an `.env` alias.
+  settings; risk-relevant values have range constraints and an `.env` alias.
 
 ### Design decisions that make it maintainable
 - **Backtest/live parity** — the same decision path runs in both, pinned by
@@ -160,7 +153,9 @@ The architecture is designed so common changes touch **one place**:
 - **Dependency injection** — traders take their collaborators (executor, db,
   risk) as constructor args → trivially testable with fakes (see `tests/`).
 - **Registry pattern** — strategies are swappable by name, no code edits.
-- **Decimal money path** — no float drift in sizing/PnL; documented rounding.
+- **Decimal risk and paper calculations** — some API/reporting boundaries and
+  SQLite monetary columns still use floats/REAL; this is not an end-to-end
+  exact-decimal persistence guarantee.
 - **Single config source** — no hardcoded thresholds scattered across modules.
 
 ---

@@ -4,7 +4,7 @@ All configuration lives here. No hardcoded values anywhere else.
 """
 
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, field_validator
 from typing import List
 from functools import lru_cache
 
@@ -121,6 +121,13 @@ class Settings(BaseSettings):
     # ─── Logging ───────────────────────────────────────────────────────────────
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
     log_file: str = Field(default="logs/neurontrade.log", alias="LOG_FILE")
+
+    @field_validator("paper_trading")
+    @classmethod
+    def require_paper_demo(cls, value: bool) -> bool:
+        if not value:
+            raise ValueError("Public demo requires PAPER_TRADING=true; real-money execution is disabled")
+        return value
 
     @property
     def trading_pairs(self) -> List[str]:

@@ -9,7 +9,7 @@ Any attempt to instantiate or use LiveExecutor raises RealMoneyRefused.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 class RealMoneyRefused(RuntimeError):

@@ -1,7 +1,6 @@
 """Task 3.1 — smart order execution: post-only, TWAP slicing, depth caps."""
 import pytest
 
-from execution.live_executor import OrderResult  # stub (disabled in public demo)
 from execution.smart_order import (
     depth_capped_quantity,
     post_only_price,

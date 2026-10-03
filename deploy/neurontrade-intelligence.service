@@ -5,10 +5,10 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-# Adjust user and paths for your host
-User=osama
-WorkingDirectory=/home/osama/ai-workspace/projects/neurontrade
-ExecStart=/home/osama/ai-workspace/projects/neurontrade/.venv/bin/python scripts/run_decoupled_intelligence.py
+# Render placeholders with setup_server.sh
+User=@RUN_USER@
+WorkingDirectory=@PROJECT_ROOT@
+ExecStart=@PROJECT_ROOT@/.venv/bin/python scripts/run_decoupled_intelligence.py
 Restart=on-failure
 RestartSec=10
 # SIGTERM → cooperative shutdown; give in-flight work time to finish
@@ -24,7 +24,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/home/osama/ai-workspace/projects/neurontrade
+ReadWritePaths=@PROJECT_ROOT@
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true

@@ -8,6 +8,11 @@ Usage:
 """
 
 import argparse
+import sys
+from pathlib import Path
+
+# Support the documented direct command from a fresh clone.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from loguru import logger
 
 from config.logging_config import setup_logging
@@ -26,7 +31,7 @@ def run_single(
     capital: float,
 ) -> BacktestResult:
     """Run a single strategy backtest."""
-    fetcher = DataFetcher()
+    fetcher = DataFetcher(public_only=True)
     preprocessor = DataPreprocessor()
     indicators = TechnicalIndicators()
     engine = BacktestEngine(initial_capital=capital)
@@ -55,7 +60,7 @@ def run_single(
 
 def compare_all(pair: str, timeframe: str, days: int, capital: float) -> None:
     """Run all strategies and compare results."""
-    fetcher = DataFetcher()
+    fetcher = DataFetcher(public_only=True)
     preprocessor = DataPreprocessor()
     indicators = TechnicalIndicators()
     engine = BacktestEngine(initial_capital=capital)

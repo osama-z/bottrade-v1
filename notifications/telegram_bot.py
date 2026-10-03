@@ -466,11 +466,11 @@ class TelegramBot:
     def send_system_start(self, balance: float, pairs: list[str],
                           mode: str | None = None) -> None:
         """Push: bot startup notification. ``mode`` reflects the actual run mode
-        (shadow / paper / live) so the alert never mislabels a shadow run."""
+        (shadow / paper) so the alert never mislabels a shadow run."""
         if mode is None:
             from config.settings import settings
             mode = ("🔍 SHADOW (log-only, no orders)" if settings.shadow_mode
-                    else ("PAPER TRADING" if settings.paper_trading else "⚠️ LIVE TRADING"))
+                    else "PAPER TRADING")
         msg = (
             f"🚀 *NeuronTrade Started*\n"
             f"{'─' * 28}\n"

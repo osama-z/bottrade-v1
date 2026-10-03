@@ -1,106 +1,73 @@
-# Deployment & Operations
+# Paper demo deployment and operation
 
-## Deploying to a VPS (recommended for the 30-day paper run)
+This public repository supports **paper simulation only**. No exchange
+credentials are needed, and its live/testnet executors are disabled.
+Start with the local [quickstart](../README.md#quickstart); an unattended server
+is optional and was not deployed or validated by the public-demo review.
 
-**Server:** any small Ubuntu 22.04/24.04 VPS — 2 vCPU / 2–4 GB RAM is plenty
-(4h candles; inference is light — Hetzner CX22, DigitalOcean basic, or similar,
-~€5/month). Pick an **EU region (never US — Binance geoblocks US IPs)**; latency
-is irrelevant at 4h cadence. A VPS beats running at home: static IP for the
-Binance whitelist, no sleep, no ISP resets — the 30-day uptime criterion is
-realistic there.
+## Optional Linux service
 
-**One-command bootstrap** (fresh server, as a sudo-capable user):
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/osama-z/bottrade/version1/deploy/setup_server.sh | bash
-```
-
-The script is idempotent (re-run it to update): installs system deps, clones
-the repo to `~/neurontrade`, builds the venv from `requirements.lock`, runs the
-full test suite, templates the systemd units for the server's paths/user, and
-prints the remaining manual steps.
-
-### Paper run — the default path (`neurontrade`, single process)
-
-`neurontrade.service` runs `scripts/run_live.py`: one process that fetches,
-runs the strategy chosen by `STRATEGY`, and executes through the PaperTrader —
-honoring `STRATEGY=trend_following` and deciding on **closed** candles at
-candle-close boundaries.
-
-1. Fill `~/neurontrade/.env` — Binance key (Reading-only, **IP-whitelisted to
-   the server's IP**, which the script prints), plus `STRATEGY=trend_following`,
-   `DEFAULT_TIMEFRAME=4h`, Telegram, (Groq/NewsAPI optional). `chmod 600 .env`.
-2. `.venv/bin/python scripts/health_check.py` → all green.
-3. `sudo systemctl enable --now neurontrade`
-4. `journalctl -fu neurontrade` — watch it live.
-5. `.venv/bin/python scripts/paper_status.py` — one-page status, anytime.
-6. Run the kill-switch drill (below) **before leaving it unattended**.
-
-`trend_following` needs **no trained models**. Only `STRATEGY=ai_combined`
-requires `scripts/train_model.py` + `scripts/train_regime.py` first.
-
-**Operating it from your phone:** Telegram gives you `/status`, `/pause`,
-`/force_sell` and push alerts (trades, breaker trips, feed outages); GitHub
-holds the code/issues; for logs, any SSH app (e.g. Termius) into the VPS —
-`journalctl -fu neurontrade`.
-
-**Updating the running bot:** merge to `version1` on GitHub, then on the
-server: `bash ~/neurontrade/deploy/setup_server.sh && sudo systemctl restart
-neurontrade`. SIGTERM is the cooperative shutdown path — in-flight position
-writes complete before exit.
-
-### Advanced: two-process ZMQ path (optional, use INSTEAD of `neurontrade`)
-
-`neurontrade-intelligence` (signals → ZMQ) + `neurontrade-execution`
-(ZMQ → PaperTrader) split intelligence and execution into separate processes
-for isolation/resilience. Both honor `STRATEGY` and closed-candle timing too.
-Enable **one path or the other, never both** (they share the same DB/breaker):
+The bootstrap script installs packages and systemd units. Review it before
+running it on a machine you administer. It targets Ubuntu with Python 3.12
+available and uses the public repository's `main` branch.
 
 ```bash
-sudo systemctl enable --now neurontrade-intelligence neurontrade-execution
-journalctl -fu neurontrade-execution
+git clone https://github.com/osama-z/bottrade-v1.git
+cd bottrade-v1
+# Inspect deploy/setup_server.sh, then run if you want a system service.
+bash deploy/setup_server.sh
 ```
 
-## Process supervision (systemd)
+By default, the script installs into `~/neurontrade`. `REPO_URL`, `BRANCH`
+and `INSTALL_DIR` can override the source and destination. It installs pinned
+dependencies, runs tests and templates unit paths for the current user.
 
-All units restart on failure. SIGTERM triggers the cooperative shutdown path
-(flags only in the handler; in-flight position writes finish before exit), so
-`systemctl stop`/`restart` never abandons a half-written trade.
+1. Inspect `~/neurontrade/.env`. Leave Binance credentials blank; keep
+   `PAPER_TRADING=true`, `STRATEGY=trend_following`, `DEFAULT_TIMEFRAME=4h`.
+2. Run `.venv/bin/python scripts/health_check.py --offline` from the install
+   directory. Omit `--offline` to also check external data services.
+3. Start the single-process simulation: `sudo systemctl enable --now neurontrade`.
+4. Inspect logs: `journalctl -fu neurontrade`.
+5. Inspect account state: `.venv/bin/python scripts/paper_status.py`.
 
-Note: on WSL2, enable systemd in `/etc/wsl.conf` (`[boot] systemd=true`)
-or use `supervisord` with equivalent `autorestart=true` programs.
+The running simulation requires access to public market-data providers; availability
+varies by network and provider restrictions. Optional Telegram controls require
+both a bot token and an authorized chat ID. The rule-based default needs no
+ML model artifacts, Groq key or news key.
 
-## Kill-switch drill (required before extended paper runs — claude.md)
+The `neurontrade-intelligence` and `neurontrade-execution` units describe the
+advanced two-process ZeroMQ alternative. Do not enable them alongside the
+single-process unit: both paths would act on the same simulated account.
+Validate this alternative separately before relying on it.
 
-Run this against the ACTUALLY RUNNING system, not the test suite. Steps below
-use the single-process unit `neurontrade`; on the two-process path substitute
-`neurontrade-execution` and additionally `systemctl stop neurontrade-intelligence`
-first to simulate a hung intelligence core.
+## Kill-switch drill for paper positions
 
-1. Confirm at least one open position (`/status` in Telegram, or `paper_status.py`).
-2. Fire the switch out-of-band (pick one):
-   - `touch KILL_SWITCH` in the project root, or
-   - `systemctl kill -s SIGUSR1 neurontrade`
-3. Verify, within ~5 seconds:
-   - all open positions closed with `exit_reason='kill_switch'`
-     (`SELECT * FROM trades ORDER BY id DESC LIMIT 5;`),
-   - breaker latched: `SELECT * FROM circuit_breaker_state;` → `tripped`,
-   - a `kill_switch` row in `risk_events`,
-   - Telegram received the flatten summary.
-4. Verify the latch survives restart: `systemctl restart neurontrade`
-   → breaker still `tripped`; with the flag file still present the switch
-   re-fires on boot (expected).
-5. Recover: remove the flag file, manually reset the breaker (deliberate,
-   operator-only action), restart the service.
+Run this against a simulation with an open position. These commands affect only
+paper state in this public demo.
 
-Record the drill date/result in the trade journal; the paper→live
-transition checklist requires it.
+1. Confirm an open position using `paper_status.py` or authorized Telegram `/status`.
+2. From the project root, create the flag: `touch KILL_SWITCH`. On Linux, sending
+   `SIGUSR1` to the paper process is the alternative.
+3. Verify that paper positions close with `exit_reason='kill_switch'`, the
+   breaker reads `tripped`, and a kill-switch risk event is recorded.
+4. Restart the simulation and verify the halt persists. The flag stays present
+   until removed by the operator.
+5. To recover, remove the flag and deliberately reset the breaker using the
+   operator controls. Restarting alone does not reset it.
 
-## Out-of-band controls summary
+For the two-process alternative, stop the intelligence service first and trigger
+its execution service to test independence from the intelligence feed.
+
+## Operator controls
 
 | Action | Mechanism |
-|---|---|
-| Halt new trading | circuit breaker (auto: daily loss / drawdown / loss streak) |
-| Pause entries | Telegram `/pause` (authorized chat only) |
-| Flatten everything | `touch KILL_SWITCH` or `SIGUSR1` — independent of ZMQ & Telegram |
-| Resume after trip | operator: remove flag, manual breaker reset |
+| --- | --- |
+| Halt new simulated entries | Daily-loss, drawdown or consecutive-loss circuit breaker |
+| Pause entries | Authorized Telegram `/pause` |
+| Flatten paper positions | `KILL_SWITCH` flag or Linux `SIGUSR1` |
+| Resume after a breaker trip | Explicit operator reset, after removing any kill-switch flag |
+
+Keep the SQLite database, including its WAL state, when preserving a paper run.
+Changing or deleting state files resets the experiment; record such changes in
+your research notes. The local review does not establish unattended uptime or
+exact decimal persistence across all storage paths.

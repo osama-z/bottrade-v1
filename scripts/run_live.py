@@ -105,7 +105,7 @@ class NeuronTradeBot:
         logger.info(
             "  Mode: {}",
             "SHADOW (log-only, no execution)" if settings.shadow_mode
-            else ("PAPER TRADING" if settings.paper_trading else "⚠️  LIVE TRADING"),
+            else "PAPER TRADING",
         )
         logger.info("  Pairs: {}", ", ".join(settings.trading_pairs))
         logger.info("  Timeframe: {}", settings.default_timeframe)

@@ -6,6 +6,7 @@ Usage:
     python scripts/health_check.py
 """
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -52,8 +53,6 @@ def check_settings() -> bool:
         print(f"     Log level: {settings.log_level}")
 
         warnings = []
-        if not settings.binance_api_key:
-            warnings.append("BINANCE_API_KEY not set")
         if not settings.groq_api_key:
             warnings.append("GROQ_API_KEY not set")
         if not settings.telegram_bot_token:
@@ -62,7 +61,7 @@ def check_settings() -> bool:
             warnings.append("NEWS_API_KEY not set")
 
         if warnings:
-            print("  ⚠️  Missing API keys (set in .env):")
+            print("  ℹ️  Optional integrations disabled (blank keys):")
             for w in warnings:
                 print(f"     - {w}")
 
@@ -105,10 +104,7 @@ def check_exchange() -> bool:
     try:
         from data.fetcher import DataFetcher
         from config.settings import settings
-        if not settings.binance_api_key:
-            print("  ⚠️  Skipping exchange check — no API key")
-            return True
-        fetcher = DataFetcher()
+        fetcher = DataFetcher(public_only=True)
         ticker = fetcher.fetch_ticker("BTC/USDT")
         print(f"  ✅ Binance connected — BTC/USDT: ${ticker['price']:,.2f}")
         return True
@@ -215,7 +211,11 @@ def check_database() -> bool:
         return False
 
 
-def main() -> None:
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Check the public paper trading demo.")
+    parser.add_argument("--offline", action="store_true",
+                        help="Check local setup without contacting market-data services.")
+    args = parser.parse_args()
     setup_logging()
 
     print("\n" + "═" * 50)
@@ -228,9 +228,11 @@ def main() -> None:
         ("Pairs",       check_pairs),
         ("Database",    check_database),
         ("Strategies",  check_strategies),
-        ("Sentiment",   check_sentiment),
-        ("Exchange",    check_exchange),
     ]
+    if not args.offline:
+        checks.extend([("Sentiment", check_sentiment), ("Exchange", check_exchange)])
+    else:
+        print("  Offline mode: external data services are not checked.")
 
     results = []
     for name, check_fn in checks:
@@ -242,11 +244,12 @@ def main() -> None:
     print(f"\n{'═' * 50}")
     print(f"  Result: {passed}/{total} checks passed")
     if passed == total:
-        print("  🟢 All systems go! Ready to trade.")
+        print("  🟢 Selected checks passed. Paper demo only; no real-order execution.")
     else:
         print("  🔴 Some checks failed — fix issues above.")
     print("═" * 50 + "\n")
+    return 0 if passed == total else 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

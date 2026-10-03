@@ -398,17 +398,17 @@ class SqliteCircuitBreakerStore:
             conn.execute(self._DDL_HISTORY)
 
             # Migration
-            cursor = conn.execute(f"PRAGMA table_info({self._table})")
+            cursor = conn.execute(f"PRAGMA table_info({self._TABLE})")
             columns = [row[1] for row in cursor.fetchall()]
             if "peak_equity" not in columns:
-                conn.execute(f"ALTER TABLE {self._table} ADD COLUMN peak_equity REAL")
+                conn.execute(f"ALTER TABLE {self._TABLE} ADD COLUMN peak_equity REAL")
 
             conn.commit()
 
     def load(self) -> _BreakerRecord:
         with self._connect() as conn:
             row = conn.execute(
-                f"SELECT state, reason, tripped_at, peak_equity FROM {self._table} WHERE id = 1"
+                f"SELECT state, reason, tripped_at, peak_equity FROM {self._TABLE} WHERE id = 1"
             ).fetchone()
         if row is None:
             return _BreakerRecord(state=CircuitBreakerState.ARMED)
@@ -429,7 +429,7 @@ class SqliteCircuitBreakerStore:
         )
         with self._connect() as conn:
             conn.execute(
-                f"""INSERT OR REPLACE INTO {self._table}
+                f"""INSERT OR REPLACE INTO {self._TABLE}
                     (id, state, reason, tripped_at, peak_equity) VALUES (1, ?, ?, ?, ?)""",
                 (record.state.value, record.reason, tripped_at_iso, record.peak_equity),
             )
@@ -454,12 +454,12 @@ class SqliteCircuitBreakerStore:
         # the update monotonic even under concurrent writers.
         with self._connect() as conn:
             conn.execute(
-                f"""INSERT OR IGNORE INTO {self._table} (id, state, peak_equity)
+                f"""INSERT OR IGNORE INTO {self._TABLE} (id, state, peak_equity)
                     VALUES (1, ?, ?)""",
                 (CircuitBreakerState.ARMED.value, peak_equity),
             )
             conn.execute(
-                f"""UPDATE {self._table}
+                f"""UPDATE {self._TABLE}
                     SET peak_equity = MAX(COALESCE(peak_equity, 0), ?)
                     WHERE id = 1""",
                 (peak_equity,),
